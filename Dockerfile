@@ -7,8 +7,8 @@ RUN tar xzf /tmp/docker-gen.tar.gz -C /usr/bin
 
 RUN apk_add haproxy socat
 
-ADD ./backend ./reload-haproxy ./check-state /usr/bin/
-RUN chmod +x /usr/bin/backend /usr/bin/reload-haproxy /usr/bin/check-state
+ADD ./reload-haproxy /usr/bin/reload-haproxy
+RUN chmod +x /usr/bin/reload-haproxy
 ADD ./haproxy.cfg.tmpl /etc/haproxy/haproxy.cfg.tmpl
 COPY ./s6 /etc
 RUN mkdir -p $STATE_DIR
