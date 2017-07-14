@@ -1,0 +1,8 @@
+#!/bin/sh
+
+# Since we want to be able to hot reload haproxy, and s6
+# would have to be configured for that, coupled with my lack
+# of interest in the subject, means that we will start haproxy 
+# outside the init system
+touch /var/run/haproxy.pid
+exec /usr/bin/reload-haproxy

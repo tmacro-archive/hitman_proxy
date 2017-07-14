@@ -1,0 +1,51 @@
+global
+	daemon
+	maxconn 4096
+	pidfile /var/run/haproxy.pid
+	stats socket /etc/haproxy/stats mode 600 level admin
+	external-check	
+	stats timeout 2m
+	tune.ssl.default-dh-param 4096
+	ssl-default-bind-options force-tlsv12
+	ssl-default-bind-ciphers ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256
+
+defaults
+	log global
+	#load-server-state-from-file global
+	mode http
+	option dontlognull
+	retries 3
+	option redispatch
+	option http-server-close
+	maxconn 2000
+	timeout connect 5s
+	timeout client 15min
+	timeout server 15min
+
+listen stats
+	bind *:1936
+	mode http
+	stats enable
+	stats hide-version
+	#stats realm Haproxy\ Statistics
+	stats uri /
+	#stats auth Username:Password
+	stats refresh 5s
+	stats admin if TRUE
+
+{{ $local := . }}
+frontend public
+	bind *:80
+	option forwardfor
+	bind *:443 ssl crt /lego/certificates/hitman.tmacs.space.pem
+	acl is-http ssl_fc,not
+	http-request redirect scheme https if is-http
+	use_backend auth
+
+
+{{ range $service, $containers := groupByLabel $ "service" }}
+backend {{ $service }}
+	{{ range $container := $containers}}{{ with $network := $container.Networks | first }}
+	server {{ $service }}_{{ $container.ID }} {{ $network.IP }}:80 check inter 5s rise 1 fall 2
+	{{ end }}{{ end }}
+{{ end }}
