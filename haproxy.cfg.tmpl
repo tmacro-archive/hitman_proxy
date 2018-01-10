@@ -40,8 +40,9 @@ frontend public
 	bind *:443 ssl crt /lego/certificates/hitman.tmacs.space.pem
 	acl is-http ssl_fc,not
 	http-request redirect scheme https if is-http
+	acl host_notes hdr_beg(host) -i notes.
+	use_backend bcknd_relay if host_notes
 	use_backend auth
-
 
 {{ range $service, $containers := groupByLabel $ "service" }}
 backend {{ $service }}
@@ -49,3 +50,6 @@ backend {{ $service }}
 	server {{ $service }}_{{ $container.ID }} {{ $network.IP }}:80 check inter 5s rise 1 fall 2
 	{{ end }}{{ end }}
 {{ end }}
+
+backend relay
+	server srv_repo relay.tmacs.space:4042 check iter 5s rise 1 fall 2
